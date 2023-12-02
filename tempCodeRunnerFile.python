@@ -1,0 +1,147 @@
+import tweepy
+from textblob import TextBlob
+import sys
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+import os
+import nltk
+import pycountry
+import re
+import string
+from wordcloud import WordCloud, STOPWORDS
+from PIL import Image
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from langdetect import detect
+from nltk.stem import SnowballStemmer
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.feature_extraction.text import CountVectorizer
+
+# المصادقة على الوصول لتويتر
+consumerKey = 'gjOvvGMWCikgA40OTqMaunrDF'
+consumerSecret = 'XzHuMSycRL3gNxS77PbXwrNk35NNqX2LEkr1FFA6osdO1mn0me'
+accessToken = '1579551912587927553-m8S2NfutkqZ12ATI7CRBqItKKR9eBp'
+accessTokenSecret = 'PjovnlYMDtvsqobepAno8rbwF5gyjiJx9pgjZ64Wr44D6'
+auth = tweepy.OAuthHandler(consumerKey, consumerSecret)
+auth.set_access_token(accessToken, accessTokenSecret)
+api = tweepy.API(auth)
+
+# تحليل المشاعر
+def percentage(part, whole):
+    return 100 * float(part) / float(whole)
+
+
+keyword = input('الرجاء إدخال الكلمة المراد البحث عنها :')
+noOfTweet = int(input('الرجاء إدخال عدد التغريدات التي تريد تحليلها :'))
+tweets = tweepy.Cursor(api.search, q=keyword).items(noOfTweet)
+
+positive = 0
+negative = 0
+neutral = 0
+polarity = 0
+
+tweet_list = []
+neutral_list = []
+negative_list = []
+positive_list = []
+
+for tweet in tweets:
+    tweet_list.append(tweet.text)
+    analysis = TextBlob(tweet.text)
+    score = SentimentIntensityAnalyzer().polarity_scores(tweet.text)
+    neg = score['neg']
+    neu = score['neu']
+    pos = score['pos']
+    comp = score['compound']
+    polarity += analysis.sentiment.polarity
+
+    if neg > pos:
+        negative_list.append(tweet.text)
+        negative += 1
+    elif pos > neg:
+        positive_list.append(tweet.text)
+        positive += 1
+    else:
+        neutral_list.append(tweet.text)
+        neutral += 1
+
+positive = percentage(positive, noOfTweet)
+negative = percentage(negative, noOfTweet)
+neutral = percentage(neutral, noOfTweet)
+polarity = percentage(polarity, noOfTweet)
+
+positive = format(positive, '.1f')
+negative = format(negative, '.1f')
+neutral = format(neutral, '.1f')
+
+# عرض عدد التغريدات ( الإجمالية ، الإيجابية ، السلبية ، المحايدة)
+tweet_list = pd.DataFrame(tweet_list)
+neutral_list = pd.DataFrame(neutral_list)
+negative_list = pd.DataFrame(negative_list)
+positive_list = pd.DataFrame(positive_list)
+
+print('إجمالي عدد التغريدات:', len(tweet_list))
+tw_list_negative = tw_list[tw_list["sentiment"] == "negative"]
+tw_list_positive = tw_list[tw_list["sentiment"] == "positive"]
+tw_list_neutral = tw_list[tw_list["sentiment"] == "neutral"]
+
+
+all_words = ' '.join([text for text in tw_list['text']])
+positive_words = ' '.join([text for text in tw_list_positive['text']])
+negative_words = ' '.join([text for text in tw_list_negative['text']])
+neutral_words = ' '.join([text for text in tw_list_neutral['text']])
+
+stopwords = set(STOPWORDS)
+stopwords.update(["https", "co", "RT", "amp"])
+
+
+wordcloud = WordCloud(stopwords=stopwords,
+width=800, height=500, random_state=21, max_font_size=110).generate(all_words)
+
+positive_wordcloud = WordCloud(stopwords=stopwords,
+width=800, height=500, random_state=21, max_font_size=110).generate(positive_words)
+
+negative_wordcloud = WordCloud(stopwords=stopwords,
+width=800, height=500, random_state=21, max_font_size=110).generate(negative_words)
+
+neutral_wordcloud = WordCloud(stopwords=stopwords,
+width=800, height=500, random_state=21, max_font_size=110).generate(neutral_words)
+
+
+plt.figure(figsize=(10, 7))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+plt.figure(figsize=(10, 7))
+plt.imshow(positive_wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+plt.figure(figsize=(10, 7))
+plt.imshow(negative_wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+plt.figure(figsize=(10, 7))
+plt.imshow(neutral_wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+
+def create_bar_graph(dataframe, sentiment):
+labels = ['Positive', 'Negative', 'Neutral']
+colors = ['yellowgreen', 'red', 'blue']
+sizes = [len(dataframe[dataframe['sentiment'] == 'positive']),
+len(dataframe[dataframe['sentiment'] == 'negative']),
+len(dataframe[dataframe['sentiment'] == 'neutral'])]
+patches, texts = plt.pie(sizes, colors=colors, startangle=90)
+plt.style.use('default')
+plt.legend(labels)
+plt.title(sentiment + " Sentiment Analysis Result")
+plt.axis('equal')
+plt.show()
+
+create_bar_graph(tw_list_positive, 'Positive')
+create_bar_graph(tw_list_negative, 'Negative')
+create_bar_graph(tw_list_neutral, 'Neutral')

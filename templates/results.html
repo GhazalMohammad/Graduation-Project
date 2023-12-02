@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Sentiment Analysis Results</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid #ddd;
+            font-size: 18px;
+            background-color: #f2f2f2;
+        }
+        
+        th, td {
+            text-align: left;
+            padding: 12px;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #fff;
+        }
+        
+        tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .tweets {
+            max-height: 500px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Sentiment Analysis Results</h1>
+    <p>{{ prediction_text }}</p>
+    <img src="{{ url_for('static', filename=image_name) }}" alt="Sentiment Analysis Plot">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style2.css') }}">
+    <h2>Tweets</h2>
+    <div class="tweets">
+        <table>
+            <tr>
+                <th>Tweet Text</th>
+                <th>Sentiment</th>
+            </tr>
+            {% for tweet in tweets %}
+            <tr>
+                <td>{{ tweet['text'] }}</td>
+                <td>{{ tweet['sentiment'] }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+
+</html>
